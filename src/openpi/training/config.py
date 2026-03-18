@@ -303,10 +303,10 @@ class LeRobotMyPolicyDataConfig(DataConfigFactory):
             inputs=[
                 _transforms.RepackTransform(
                     {
-                        "observation/image": "image",
+                        "observation/image": "front_image",
                         "observation/wrist_image": "wrist_image",
                         "observation/state": "state",
-                        "actions": "actions",
+                        "actions": "action",
                         "prompt": "prompt",
                     }
                 )
@@ -728,7 +728,7 @@ _CONFIGS = [
     # the comments below.
     TrainConfig(
         # Change the name to reflect your model and dataset.
-        name="pi0_mypolicy",
+        name="pi05_mypolicy",
         # Here you define the model config -- In this example we use pi0 as the model
         # architecture and perform *full* finetuning. in the examples below we show how to modify
         # this to perform *low-memory* (LORA) finetuning and use pi0-FAST as an alternative architecture.
@@ -757,6 +757,34 @@ _CONFIGS = [
         # Below you can define other hyperparameters like the learning rate, number of training steps, etc.
         # Check the base TrainConfig class for a full list of available hyperparameters.
         num_train_steps=30_000,
+    ),
+    TrainConfig(
+        name="pi05_mypolicy_lora",
+        model=pi0_config.Pi0Config(
+            pi05=True,
+            action_dim=32,
+            action_horizon=16,
+            paligemma_variant="gemma_2b_lora",
+            action_expert_variant="gemma_300m_lora",
+        ),
+        data=LeRobotMyPolicyDataConfig(
+            repo_id="test_dataset_for_openpi_training",
+            base_config=DataConfig(
+                prompt_from_task=True,
+                action_sequence_keys=("action",),
+            ),
+            extra_delta_transform=True,
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_droid/params"),
+        num_train_steps=30_000,
+        freeze_filter=pi0_config.Pi0Config(
+            pi05=True,
+            action_dim=32,
+            action_horizon=16,
+            paligemma_variant="gemma_2b_lora",
+            action_expert_variant="gemma_300m_lora",
+        ).get_freeze_filter(),
+        ema_decay=None,
     ),
     # Fine-tuning Libero configs.
     #
