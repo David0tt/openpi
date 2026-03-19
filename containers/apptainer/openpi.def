@@ -1,0 +1,64 @@
+Bootstrap: docker
+From: nvidia/cuda:13.2.0-cudnn-devel-ubuntu24.04
+# From: nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+
+%labels
+    Author ott
+    Description Minimal CUDA + Python + uv base for openpi on Apptainer/Singularity
+
+%help
+    GPU-enabled minimal environment for openpi workflows.
+
+    Build:
+            singularity build --fakeroot openpi.sif containers/apptainer/openpi.def
+
+    Run with GPU:
+            singularity exec --nv --bind "$PWD:/workspace" openpi.sif bash
+
+%environment
+    export DEBIAN_FRONTEND=noninteractive
+    export PATH=/usr/local/bin:${PATH}
+
+%post
+    set -eux
+
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        openssh-client \
+        build-essential \
+        pkg-config \
+        libglib2.0-0 \
+        libgl1 \
+        libxext6 \
+        libsm6 \
+        libxrender1 \
+        tini
+
+    apt-get install -y --no-install-recommends \
+        ffmpeg
+
+#    # for libav    
+#    apt-get install -y --no-install-recommends \
+#        ffmpeg \
+#        libavcodec-dev \
+#        libavdevice-dev \
+#        libavfilter-dev \
+#        libavformat-dev \
+#        libavutil-dev \
+#        libswresample-dev \
+#        libswscale-dev \
+
+
+    rm -rf /var/lib/apt/lists/*
+
+    # Install uv into a global path so non-root users can execute it.
+    export UV_INSTALL_DIR=/usr/local/bin
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    chmod 0755 /usr/local/bin/uv /usr/local/bin/uvx
+
+%runscript
+    exec /usr/bin/tini -- "$@"
